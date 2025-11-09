@@ -351,9 +351,11 @@ if df_input is not None:
         'impr.': 'impressions',
         'impression': 'impressions',
         
-        # Click variations
+        # Click variations (including interactions)
         'click': 'clicks',
-        'total clicks': 'clicks'
+        'total clicks': 'clicks',
+        'interactions': 'clicks',
+        'interaction': 'clicks'
     }
     
     df_input = df_input.rename(columns=column_mapping)
