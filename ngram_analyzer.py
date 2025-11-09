@@ -388,10 +388,11 @@ if df_input is not None:
         df_input['impressions'] = df_input['clicks']
         st.info("ℹ️ Impressions column not found - using clicks as proxy")
     
-    # Convert to numeric and clean
+    # Convert to numeric and clean (only for columns that exist)
     numeric_cols = ['clicks', 'cost', 'conversions', 'impressions']
     for col in numeric_cols:
-        df_input[col] = pd.to_numeric(df_input[col], errors='coerce').fillna(0)
+        if col in df_input.columns:
+            df_input[col] = pd.to_numeric(df_input[col], errors='coerce').fillna(0)
     
     # Remove rows with no query
     df_input = df_input[df_input['query'].notna() & (df_input['query'] != '')]
