@@ -323,73 +323,91 @@ if df_input is not None:
     # Validate and normalize column names
     df_input.columns = df_input.columns.str.lower().str.strip()
     
-    # Comprehensive column mapping for Google Ads and other platforms
-    column_mapping = {
-        # Query variations
-        'keyword': 'query',
-        'search term': 'query',
-        'search_term': 'query',
-        'search terms': 'query',
-        'searchterm': 'query',
-        
-        # Cost variations
-        'spend': 'cost',
-        'cost_gbp': 'cost',
-        'cost / conv.': 'cost',
-        'total cost': 'cost',
-        'totalcost': 'cost',
-        
-        # Conversion variations
-        'conv.': 'conversions',
-        'conv': 'conversions',
-        'converted': 'conversions',
-        'conversions ': 'conversions',
-        'total conversions': 'conversions',
-        
-        # Impression variations
-        'impr': 'impressions',
-        'impr.': 'impressions',
-        'impression': 'impressions',
-        
-        # Click variations (including interactions)
-        'click': 'clicks',
-        'total clicks': 'clicks',
-        'interactions': 'clicks',
-        'interaction': 'clicks'
-    }
+    # First, identify which original columns we need BEFORE mapping
+    # This prevents duplicate column names after mapping
     
-    # Apply column mapping
-    df_input = df_input.rename(columns=column_mapping)
+    # Find the query column - ONLY search term variations, NOT keyword!
+    # Keyword is the trigger, search term is what we want to analyze
+    query_candidates = ['search term', 'search_term', 'query', 'search terms', 'searchterm']
+    query_col = None
+    for candidate in query_candidates:
+        if candidate in df_input.columns:
+            query_col = candidate
+            break
     
-    # Check for required columns
-    required_cols = ['query', 'clicks', 'cost', 'conversions']
-    missing_cols = [col for col in required_cols if col not in df_input.columns]
+    # Find clicks column  
+    clicks_candidates = ['interactions', 'clicks', 'click', 'interaction', 'total clicks']
+    clicks_col = None
+    for candidate in clicks_candidates:
+        if candidate in df_input.columns:
+            clicks_col = candidate
+            break
     
-    if missing_cols:
+    # Find cost column
+    cost_candidates = ['cost', 'spend', 'cost_gbp', 'total cost', 'totalcost']
+    cost_col = None
+    for candidate in cost_candidates:
+        if candidate in df_input.columns:
+            cost_col = candidate
+            break
+    
+    # Find conversions column
+    conv_candidates = ['conversions', 'conv.', 'conv', 'converted', 'total conversions']
+    conv_col = None
+    for candidate in conv_candidates:
+        if candidate in df_input.columns:
+            conv_col = candidate
+            break
+    
+    # Find impressions column (optional)
+    impr_candidates = ['impr.', 'impressions', 'impr', 'impression']
+    impr_col = None
+    for candidate in impr_candidates:
+        if candidate in df_input.columns:
+            impr_col = candidate
+            break
+    
+    # Check we found all required columns
+    missing = []
+    if not query_col:
+        missing.append('search term/query')
+    if not clicks_col:
+        missing.append('clicks/interactions')
+    if not cost_col:
+        missing.append('cost/spend')
+    if not conv_col:
+        missing.append('conversions')
+    
+    if missing:
         st.markdown(f"""
         <div class="warning-box">
-        ⚠️ Missing required columns: {', '.join(missing_cols)}<br>
+        ⚠️ Missing required columns: {', '.join(missing)}<br>
         Available columns: {', '.join(df_input.columns)}<br>
         Please ensure your data includes: search term, clicks/interactions, cost, conversions
         </div>
         """, unsafe_allow_html=True)
         st.stop()
     
-    # Keep only the columns we need
-    keep_cols = ['query', 'clicks', 'cost', 'conversions']
-    if 'impressions' in df_input.columns:
-        keep_cols.append('impressions')
+    # Now create a clean dataframe with just the columns we need
+    clean_data = {
+        'query': df_input[query_col],
+        'clicks': df_input[clicks_col],
+        'cost': df_input[cost_col],
+        'conversions': df_input[conv_col]
+    }
     
-    df_input = df_input[keep_cols].copy()
+    if impr_col:
+        clean_data['impressions'] = df_input[impr_col]
+    
+    df_input = pd.DataFrame(clean_data).reset_index(drop=True)
     
     # Add impressions if missing
     if 'impressions' not in df_input.columns:
-        df_input['impressions'] = df_input['clicks']
+        df_input['impressions'] = df_input['clicks'].copy()
         st.info("ℹ️ Impressions column not found - using clicks as proxy")
     
     # Convert to numeric and clean
-    numeric_cols = ['clicks', 'cost', 'conversions', 'impressions']
-    for col in numeric_cols:
+    for col in ['clicks', 'cost', 'conversions', 'impressions']:
         df_input[col] = pd.to_numeric(df_input[col], errors='coerce').fillna(0)
     
     # Remove rows with no query
