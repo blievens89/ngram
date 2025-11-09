@@ -439,15 +439,15 @@ if df_input is not None:
                         
                         # Display top money wasters
                         display_cols = ['ngram', 'query_count', 'total_cost', 'total_conversions', 'cvr', 'cpa', 'waste_score']
-                        st.dataframe(
-                            money_wasters[display_cols].head(10).style.format({
-                                'total_cost': '£{:.2f}',
-                                'cvr': '{:.2f}%',
-                                'cpa': '£{:.2f}',
-                                'waste_score': '{:.3f}'
-                            }).background_gradient(cmap='Reds', subset=['waste_score']),
-                            use_container_width=True
-                        )
+                        
+                        # Format the dataframe
+                        display_df = money_wasters[display_cols].head(10).copy()
+                        display_df['total_cost'] = display_df['total_cost'].apply(lambda x: f'£{x:.2f}')
+                        display_df['cvr'] = display_df['cvr'].apply(lambda x: f'{x:.2f}%')
+                        display_df['cpa'] = display_df['cpa'].apply(lambda x: f'£{x:.2f}')
+                        display_df['waste_score'] = display_df['waste_score'].apply(lambda x: f'{x:.3f}')
+                        
+                        st.dataframe(display_df, use_container_width=True)
                 
                 # Full results table
                 st.markdown(f"### All {n}-grams")
@@ -456,16 +456,15 @@ if df_input is not None:
                                'total_conversions', 'ctr', 'cvr', 'cpa']
                 
                 # Format and display
-                styled_df = df_ngram[display_cols].style.format({
-                    'total_clicks': '{:,.0f}',
-                    'total_cost': '£{:,.2f}',
-                    'total_conversions': '{:,.0f}',
-                    'ctr': '{:.2f}%',
-                    'cvr': '{:.2f}%',
-                    'cpa': '£{:.2f}'
-                }).background_gradient(cmap='Greens', subset=['total_conversions'])
+                display_df = df_ngram[display_cols].copy()
+                display_df['total_clicks'] = display_df['total_clicks'].apply(lambda x: f'{x:,.0f}')
+                display_df['total_cost'] = display_df['total_cost'].apply(lambda x: f'£{x:,.2f}')
+                display_df['total_conversions'] = display_df['total_conversions'].apply(lambda x: f'{x:,.0f}')
+                display_df['ctr'] = display_df['ctr'].apply(lambda x: f'{x:.2f}%')
+                display_df['cvr'] = display_df['cvr'].apply(lambda x: f'{x:.2f}%')
+                display_df['cpa'] = display_df['cpa'].apply(lambda x: f'£{x:.2f}')
                 
-                st.dataframe(styled_df, use_container_width=True, height=400)
+                st.dataframe(display_df, use_container_width=True, height=400)
                 
                 # Download buttons
                 col1, col2 = st.columns(2)
