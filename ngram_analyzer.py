@@ -358,41 +358,39 @@ if df_input is not None:
         'interaction': 'clicks'
     }
     
+    # Apply column mapping
     df_input = df_input.rename(columns=column_mapping)
     
-    # Keep only the columns we need (if they exist)
-    required_cols = ['query', 'clicks', 'cost', 'conversions']
-    optional_cols = ['impressions']
-    
-    # Get columns that exist in the dataframe
-    available_cols = [col for col in required_cols + optional_cols if col in df_input.columns]
-    
-    # Filter to only the columns we need
-    df_input = df_input[available_cols].copy()
-    
     # Check for required columns
-    required_cols = {'query', 'clicks', 'cost', 'conversions'}
-    missing_cols = required_cols - set(df_input.columns)
+    required_cols = ['query', 'clicks', 'cost', 'conversions']
+    missing_cols = [col for col in required_cols if col not in df_input.columns]
     
     if missing_cols:
         st.markdown(f"""
         <div class="warning-box">
         ⚠️ Missing required columns: {', '.join(missing_cols)}<br>
-        Please ensure your data includes: query, clicks, cost, conversions
+        Available columns: {', '.join(df_input.columns)}<br>
+        Please ensure your data includes: search term, clicks/interactions, cost, conversions
         </div>
         """, unsafe_allow_html=True)
         st.stop()
+    
+    # Keep only the columns we need
+    keep_cols = ['query', 'clicks', 'cost', 'conversions']
+    if 'impressions' in df_input.columns:
+        keep_cols.append('impressions')
+    
+    df_input = df_input[keep_cols].copy()
     
     # Add impressions if missing
     if 'impressions' not in df_input.columns:
         df_input['impressions'] = df_input['clicks']
         st.info("ℹ️ Impressions column not found - using clicks as proxy")
     
-    # Convert to numeric and clean (only for columns that exist)
+    # Convert to numeric and clean
     numeric_cols = ['clicks', 'cost', 'conversions', 'impressions']
     for col in numeric_cols:
-        if col in df_input.columns:
-            df_input[col] = pd.to_numeric(df_input[col], errors='coerce').fillna(0)
+        df_input[col] = pd.to_numeric(df_input[col], errors='coerce').fillna(0)
     
     # Remove rows with no query
     df_input = df_input[df_input['query'].notna() & (df_input['query'] != '')]
