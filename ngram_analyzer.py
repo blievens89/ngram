@@ -220,13 +220,16 @@ with st.sidebar:
     st.markdown("""
     <div class="info-box">
     <strong>Required Columns:</strong><br>
-    • query (or keyword)<br>
-    • clicks<br>
-    • cost (or spend)<br>
-    • conversions (or conv.)<br>
+    • Search term (or keyword/query)<br>
+    • Clicks<br>
+    • Cost<br>
+    • Conversions (or conv.)<br>
     <br>
     <strong>Optional:</strong><br>
-    • impressions (will calculate from clicks if missing)
+    • Impressions (or impr.)<br>
+    <br>
+    <em>All other columns will be ignored.<br>
+    Perfect for Google Ads exports!</em>
     </div>
     """, unsafe_allow_html=True)
     
@@ -320,20 +323,50 @@ if df_input is not None:
     # Validate and normalize column names
     df_input.columns = df_input.columns.str.lower().str.strip()
     
-    # Map common column name variations
+    # Comprehensive column mapping for Google Ads and other platforms
     column_mapping = {
+        # Query variations
         'keyword': 'query',
         'search term': 'query',
         'search_term': 'query',
+        'search terms': 'query',
+        'searchterm': 'query',
+        
+        # Cost variations
         'spend': 'cost',
         'cost_gbp': 'cost',
+        'cost / conv.': 'cost',
+        'total cost': 'cost',
+        'totalcost': 'cost',
+        
+        # Conversion variations
         'conv.': 'conversions',
         'conv': 'conversions',
+        'converted': 'conversions',
+        'conversions ': 'conversions',
+        'total conversions': 'conversions',
+        
+        # Impression variations
         'impr': 'impressions',
-        'impr.': 'impressions'
+        'impr.': 'impressions',
+        'impression': 'impressions',
+        
+        # Click variations
+        'click': 'clicks',
+        'total clicks': 'clicks'
     }
     
     df_input = df_input.rename(columns=column_mapping)
+    
+    # Keep only the columns we need (if they exist)
+    required_cols = ['query', 'clicks', 'cost', 'conversions']
+    optional_cols = ['impressions']
+    
+    # Get columns that exist in the dataframe
+    available_cols = [col for col in required_cols + optional_cols if col in df_input.columns]
+    
+    # Filter to only the columns we need
+    df_input = df_input[available_cols].copy()
     
     # Check for required columns
     required_cols = {'query', 'clicks', 'cost', 'conversions'}
