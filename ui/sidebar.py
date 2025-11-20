@@ -44,8 +44,18 @@ def render_sidebar() -> Tuple[Optional[pd.DataFrame], dict]:
         # Input method selection
         input_method = st.radio(
             "Input Method",
-            ["Paste Data", "Upload File", "Use Example Data"]
+            ["Paste Data", "Upload File", "Use Example Data"],
+            key="input_method_selector"
         )
+
+        # Reset example data state if user switches away from example data
+        if 'last_input_method' not in st.session_state:
+            st.session_state.last_input_method = input_method
+
+        if st.session_state.last_input_method != input_method:
+            if 'example_data_loaded' in st.session_state:
+                st.session_state.example_data_loaded = False
+            st.session_state.last_input_method = input_method
 
         df_input = None
 
@@ -68,20 +78,33 @@ def render_sidebar() -> Tuple[Optional[pd.DataFrame], dict]:
             if 'example_data_loaded' not in st.session_state:
                 st.session_state.example_data_loaded = False
 
+            # DEBUG: Show current state
+            st.caption(f"🔍 Debug: Loaded={st.session_state.example_data_loaded}")
+
             # Show button to load data
             if not st.session_state.example_data_loaded:
+                st.info("👇 Click button below to load 20 example queries")
                 if st.button("📥 Load Example Data", use_container_width=True, type="primary"):
                     st.session_state.example_data_loaded = True
                     st.rerun()  # Force rerun to load data
             else:
                 # Data is loaded, show it
+                st.info("🔄 Loading example data...")
                 df_input = load_example_data()
 
                 if df_input is not None and not df_input.empty:
                     st.success(f"✅ Example data loaded: {len(df_input)} queries")
 
-                    with st.expander("👀 Preview data", expanded=True):
+                    with st.expander("👀 Preview first 5 rows", expanded=True):
                         st.dataframe(df_input.head(5), use_container_width=True)
+
+                    # Show some stats
+                    st.markdown(f"""
+                    **Data Summary:**
+                    - Total queries: {len(df_input)}
+                    - Total cost: £{df_input['cost'].sum():,.2f}
+                    - Total conversions: {int(df_input['conversions'].sum())}
+                    """)
 
                     # Reset button
                     if st.button("🔄 Clear & Load Different Data", use_container_width=True):
@@ -89,6 +112,7 @@ def render_sidebar() -> Tuple[Optional[pd.DataFrame], dict]:
                         st.rerun()
                 else:
                     st.error("❌ Could not load example_data.csv")
+                    st.warning("Make sure example_data.csv exists in the project directory")
                     if st.button("Try Again"):
                         st.session_state.example_data_loaded = False
                         st.rerun()
