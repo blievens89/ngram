@@ -75,47 +75,34 @@ def render_sidebar() -> Tuple[Optional[pd.DataFrame], dict]:
 
         elif input_method == "Use Example Data":
             # Initialize session state
-            if 'example_data_loaded' not in st.session_state:
-                st.session_state.example_data_loaded = False
-
-            # DEBUG: Show current state
-            st.caption(f"🔍 Debug: Loaded={st.session_state.example_data_loaded}")
+            if 'example_data_df' not in st.session_state:
+                st.session_state.example_data_df = None
 
             # Show button to load data
-            if not st.session_state.example_data_loaded:
-                st.info("👇 Click button below to load 20 example queries")
+            if st.session_state.example_data_df is None:
+                st.info("👇 Click to load 20 example queries")
                 if st.button("📥 Load Example Data", use_container_width=True, type="primary"):
-                    st.session_state.example_data_loaded = True
-                    st.rerun()  # Force rerun to load data
+                    # Load and store in session state
+                    loaded_df = load_example_data()
+                    if loaded_df is not None and not loaded_df.empty:
+                        st.session_state.example_data_df = loaded_df
+                        st.rerun()
+                    else:
+                        st.error("Failed to load example data")
             else:
-                # Data is loaded, show it
-                st.info("🔄 Loading example data...")
-                df_input = load_example_data()
+                # Use data from session state
+                df_input = st.session_state.example_data_df
 
-                if df_input is not None and not df_input.empty:
-                    st.success(f"✅ Example data loaded: {len(df_input)} queries")
+                st.success(f"✅ Loaded: {len(df_input)} queries")
 
-                    with st.expander("👀 Preview first 5 rows", expanded=True):
-                        st.dataframe(df_input.head(5), use_container_width=True)
+                with st.expander("👀 Preview", expanded=False):
+                    st.dataframe(df_input.head(5), use_container_width=True)
+                    st.caption(f"Cost: £{df_input['cost'].sum():,.2f} | Conv: {int(df_input['conversions'].sum())}")
 
-                    # Show some stats
-                    st.markdown(f"""
-                    **Data Summary:**
-                    - Total queries: {len(df_input)}
-                    - Total cost: £{df_input['cost'].sum():,.2f}
-                    - Total conversions: {int(df_input['conversions'].sum())}
-                    """)
-
-                    # Reset button
-                    if st.button("🔄 Clear & Load Different Data", use_container_width=True):
-                        st.session_state.example_data_loaded = False
-                        st.rerun()
-                else:
-                    st.error("❌ Could not load example_data.csv")
-                    st.warning("Make sure example_data.csv exists in the project directory")
-                    if st.button("Try Again"):
-                        st.session_state.example_data_loaded = False
-                        st.rerun()
+                # Clear button
+                if st.button("🔄 Clear", use_container_width=True):
+                    st.session_state.example_data_df = None
+                    st.rerun()
 
         # Analysis Settings
         st.markdown("---")
