@@ -64,10 +64,26 @@ def render_sidebar() -> Tuple[Optional[pd.DataFrame], dict]:
                 df_input = load_data_from_file(uploaded_file)
 
         elif input_method == "Use Example Data":
-            if st.button("Load Example Data"):
+            if 'example_data_loaded' not in st.session_state:
+                st.session_state.example_data_loaded = False
+
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                if st.button("📥 Load Example Data", use_container_width=True):
+                    st.session_state.example_data_loaded = True
+            with col2:
+                if st.button("🔄", help="Reset"):
+                    st.session_state.example_data_loaded = False
+                    st.rerun()
+
+            if st.session_state.example_data_loaded:
                 df_input = load_example_data()
-                if not df_input.empty:
-                    st.success("✅ Example data loaded!")
+                if df_input is not None and not df_input.empty:
+                    st.info(f"📊 Example data: {len(df_input)} queries loaded")
+                    with st.expander("👀 Preview data"):
+                        st.dataframe(df_input.head(5), use_container_width=True)
+                else:
+                    st.error("❌ Could not load example_data.csv")
 
         # Analysis Settings
         st.markdown("---")
