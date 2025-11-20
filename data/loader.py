@@ -68,12 +68,28 @@ def load_example_data() -> pd.DataFrame:
     Returns:
         DataFrame with example query data
     """
-    try:
-        logger.info("Loading example data")
-        df = pd.read_csv('example_data.csv')
-        logger.info(f"Loaded {len(df)} rows from example data")
-        return df
-    except FileNotFoundError:
-        logger.warning("Example data file not found")
-        st.warning("Example data file not found")
-        return pd.DataFrame()
+    import os
+
+    # Try multiple possible paths
+    possible_paths = [
+        'example_data.csv',
+        os.path.join(os.path.dirname(__file__), '..', 'example_data.csv'),
+        '/home/user/ngram/example_data.csv'
+    ]
+
+    for path in possible_paths:
+        try:
+            logger.info(f"Trying to load example data from: {path}")
+            df = pd.read_csv(path)
+            logger.info(f"✅ Loaded {len(df)} rows from {path}")
+            return df
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            logger.error(f"Error loading from {path}: {e}")
+            continue
+
+    # If we get here, none of the paths worked
+    logger.error("Could not find example_data.csv in any location")
+    st.error("❌ Could not find example_data.csv - please ensure it exists in the project directory")
+    return pd.DataFrame()
